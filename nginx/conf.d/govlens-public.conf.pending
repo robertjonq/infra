@@ -1,0 +1,80 @@
+# govlens-public.conf — server blocks for the public marketing site.
+#
+# NOT ACTIVE YET. Filename ends in .conf.pending so nginx's
+# `include conf.d/*.conf` skips it. Rename to `.conf` and reload
+# once:
+#   1. govlens.ie DNS is live and points at ubdock's public IP
+#   2. A TLS certificate has been issued for govlens.ie + www.govlens.ie
+#      via acme.sh (HTTP-01 challenge). Cert files expected at:
+#        /etc/letsencrypt/live/govlens.ie/fullchain.pem
+#        /etc/letsencrypt/live/govlens.ie/privkey.pem
+#
+# Deploy sequence when ready:
+#   mv govlens-public.conf.pending govlens-public.conf
+#   docker kill -s HUP infra-nginx
+#   curl -I https://govlens.ie/       # should return 200 from govlens-web
+#
+# Rollback: rename back to .pending, SIGHUP.
+
+upstream govlens_public_web {
+    server govlens-web:5000;
+}
+
+# ── Canonical apex: www → apex redirect (HTTPS) ─────────────────────
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name www.govlens.ie;
+
+    ssl_certificate     /etc/letsencrypt/live/govlens.ie/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/govlens.ie/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    return 301 https://govlens.ie$request_uri;
+}
+
+# ── Apex (HTTPS) — proxies to govlens-web ───────────────────────────
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name govlens.ie;
+    client_max_body_size 10m;
+
+    ssl_certificate     /etc/letsencrypt/live/govlens.ie/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/govlens.ie/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1h;
+
+    access_log /var/log/nginx/access.log main;
+    error_log  /var/log/nginx/error.log warn;
+
+    include /etc/nginx/snippets/scanners.conf;
+
+    location / {
+        limit_req zone=per_ip burst=20 nodelay;
+        limit_req_status 429;
+        proxy_pass http://govlens_public_web;
+        include /etc/nginx/snippets/proxy_headers.conf;
+        proxy_read_timeout 30s;
+    }
+}
+
+# ── HTTP (port 80): acme-challenge + redirect to HTTPS ──────────────
+# The acme-challenge location is served from a webroot bind-mounted
+# into the container (see infra/docker-compose.yml when this file is
+# activated). Everything else redirects to HTTPS.
+server {
+    listen 80;
+    server_name govlens.ie www.govlens.ie;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/acme;
+    }
+
+    location / {
+        return 301 https://govlens.ie$request_uri;
+    }
+}

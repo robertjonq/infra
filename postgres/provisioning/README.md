@@ -24,6 +24,7 @@ privileges should be expressed as a file in this directory.
 | `000-admin-bootstrap.sql` | One-time cluster hardening. Revokes PUBLIC grants. Run once on a fresh cluster. |
 | `010-pmem.sql` | Creates `pmem` role + `pmem` database. |
 | `020-ticker.sql` | Creates `ticker_app` role + `ticker` database. |
+| `030-govlens-public.sql` | Creates `govlens_public` read-only role (SELECT on whitelisted pmem tables). No own database — reads pmem data. |
 
 ## Tenant onboarding (3-step recipe)
 
@@ -67,15 +68,19 @@ docker compose exec -e PMEM_APP_PASSWORD="$PMEM_APP_PASSWORD" postgres \
 # 3. ticker tenant
 docker compose exec -e TICKER_APP_PASSWORD="$TICKER_APP_PASSWORD" postgres \
     psql -U postgres -v app_pw="$TICKER_APP_PASSWORD" -f /provisioning/020-ticker.sql
+
+# 4. govlens public (read-only over pmem data)
+docker compose exec -e GOVLENS_PUBLIC_PASSWORD="$GOVLENS_PUBLIC_PASSWORD" postgres \
+    psql -U postgres -v app_pw="$GOVLENS_PUBLIC_PASSWORD" -f /provisioning/030-govlens-public.sql
 ```
 
 ## Verifying the state afterwards
 
 ```sql
--- One superuser (postgres), plus two LOGIN-only tenant roles.
+-- One superuser (postgres), plus LOGIN-only tenant roles.
 SELECT rolname, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolcanlogin
 FROM   pg_roles
-WHERE  rolname IN ('postgres', 'pmem', 'ticker_app')
+WHERE  rolname IN ('postgres', 'pmem', 'ticker_app', 'govlens_public')
 ORDER  BY rolname;
 
 -- Three databases (postgres, pmem, ticker) with the right owners.
@@ -83,4 +88,13 @@ SELECT datname, pg_get_userbyid(datdba) AS owner
 FROM   pg_database
 WHERE  datistemplate = false
 ORDER  BY datname;
+
+-- govlens_public privileges should be SELECT on the 4 whitelisted tables.
+\c pmem
+SELECT table_name, string_agg(privilege_type, ', ' ORDER BY privilege_type) AS privs
+FROM   information_schema.role_table_grants
+WHERE  grantee = 'govlens_public'
+GROUP  BY table_name
+ORDER  BY table_name;
+\c postgres
 ```

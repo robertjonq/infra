@@ -44,8 +44,9 @@ applying them.
 
 | Tenant | Database | Role | Provisioning file |
 |--------|----------|------|---|
-| pmem (govlens) | `pmem` | `pmem` | [`postgres/provisioning/010-pmem.sql`](postgres/provisioning/010-pmem.sql) |
-| ticker | `ticker` | `ticker_app` | [`postgres/provisioning/020-ticker.sql`](postgres/provisioning/020-ticker.sql) |
+| pmem (data app, admin) | `pmem` | `pmem` (read+write) | [`postgres/provisioning/010-pmem.sql`](postgres/provisioning/010-pmem.sql) |
+| ticker | `ticker` | `ticker_app` (read+write) | [`postgres/provisioning/020-ticker.sql`](postgres/provisioning/020-ticker.sql) |
+| govlens-public (marketing site) | `pmem` (shared) | `govlens_public` (SELECT only, whitelisted tables) | [`postgres/provisioning/030-govlens-public.sql`](postgres/provisioning/030-govlens-public.sql) |
 
 ## Bring-up (first time)
 
