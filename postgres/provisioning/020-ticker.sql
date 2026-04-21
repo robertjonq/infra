@@ -26,7 +26,11 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'ticker')
 ALTER DATABASE ticker OWNER TO ticker_app;
 
 REVOKE CONNECT ON DATABASE postgres FROM ticker_app;
-GRANT  CONNECT ON DATABASE ticker   TO   ticker_app;
+
+-- Lock down the ticker database to ticker_app only. See 010-pmem.sql
+-- for the reasoning (PUBLIC has CONNECT on every new DB by default).
+REVOKE CONNECT ON DATABASE ticker FROM PUBLIC;
+GRANT  CONNECT ON DATABASE ticker TO   ticker_app;
 
 \c ticker
 ALTER SCHEMA public OWNER TO ticker_app;

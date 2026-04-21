@@ -42,7 +42,12 @@ ALTER DATABASE pmem OWNER TO pmem;
 -- Scope pmem's access: only the pmem database. No CONNECT on the
 -- admin `postgres` DB or on any other tenant DB.
 REVOKE CONNECT ON DATABASE postgres FROM pmem;
-GRANT  CONNECT ON DATABASE pmem     TO   pmem;
+
+-- Lock down the pmem database to pmem only. Postgres grants CONNECT
+-- to PUBLIC on every new DB by default, so every LOGIN-capable role
+-- (including other tenants' apps) could otherwise connect here.
+REVOKE CONNECT ON DATABASE pmem FROM PUBLIC;
+GRANT  CONNECT ON DATABASE pmem TO   pmem;
 
 -- Inside the pmem database: pmem owns the public schema.
 \c pmem
