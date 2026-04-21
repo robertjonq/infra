@@ -1,0 +1,10 @@
+# Force LF line endings for shell scripts and SQL — these run on
+# Linux (ubdock) and CRLF breaks bash shebang handling and psql
+# meta-commands like \c / \gexec.
+*.sh  text eol=lf
+*.sql text eol=lf
+
+# Keep config files and markdown normalised to LF too for consistency.
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf

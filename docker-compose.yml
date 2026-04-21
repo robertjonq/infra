@@ -1,0 +1,76 @@
+name: infra
+
+# Shared infrastructure for all projects on this host.
+# - postgres: multi-tenant cluster. Each project gets its own DB + role.
+#   Admin (superuser) is the built-in `postgres` role; per-project roles
+#   are provisioned via postgres/provisioning/*.sql (run manually).
+#
+# Tenants attach to the `infra_backend` network from their own compose
+# files and connect via hostname `infra-postgres` on port 5432.
+#
+# The cluster is deliberately NOT exposed on a host port. All tenant
+# access is docker-network-only. To query from the dev machine, use:
+#   docker compose exec postgres psql -U postgres
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: infra-postgres
+    restart: unless-stopped
+
+    environment:
+      # Built-in superuser. POSTGRES_USER and POSTGRES_DB omitted so
+      # the entrypoint defaults to user=postgres, db=postgres. The
+      # password below is the admin account for the whole cluster.
+      - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD}
+      - TZ=Europe/Dublin
+
+    volumes:
+      # Fresh volume — deliberately not `prp_postgres` (that one stays
+      # attached to the old pmem compose during the migration window).
+      - infra_postgres:/var/lib/postgresql/data
+      # Provisioning SQL mounted read-only. Scripts are run manually
+      # via `docker compose exec postgres psql -f /provisioning/...`
+      # rather than via docker-entrypoint-initdb.d, so they stay
+      # re-runnable and auditable against the live cluster.
+      - ./postgres/provisioning:/provisioning:ro
+
+    # No host port. Tenants reach this via the infra_backend network.
+    # If we ever need external psql access, add:
+    #   ports: ["5432:5432"]
+    # but prefer `docker compose exec postgres psql` instead.
+
+    networks:
+      - infra_backend
+
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  infra_postgres:
+    name: infra_postgres
+
+networks:
+  # External network — tenants attach from their own compose files via:
+  #   networks:
+  #     infra_backend:
+  #       external: true
+  infra_backend:
+    name: infra_backend
+    driver: bridge

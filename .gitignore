@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+
+# Dump artifacts (should never end up in the repo)
+*.sql.gz
+*.dump
+*.tar
+*.tar.gz
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
