@@ -1,29 +1,22 @@
 -- 020-ticker.sql
 --
 -- Provisions the `ticker` tenant: one role, one database, scoped grants.
--- Same shape as 010-pmem.sql.
+-- Same shape as 010-pmem.sql. See that file's header for the pattern.
 --
---   docker compose exec -e TICKER_APP_PASSWORD=xxx postgres \
+--   docker compose exec -e TICKER_APP_PASSWORD="$TICKER_APP_PASSWORD" postgres \
 --     psql -U postgres -v app_pw="$TICKER_APP_PASSWORD" -f /provisioning/020-ticker.sql
 
 \echo 'Applying 020-ticker.sql'
 
 -- Role: ticker_app
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ticker_app') THEN
-        EXECUTE format(
-            'CREATE ROLE ticker_app LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L',
-            current_setting('app_pw')
-        );
-    ELSE
-        EXECUTE format(
-            'ALTER ROLE ticker_app WITH LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L',
-            current_setting('app_pw')
-        );
-    END IF;
-END
-$$;
+SELECT format(
+    CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ticker_app')
+         THEN 'ALTER ROLE ticker_app WITH LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L'
+         ELSE 'CREATE ROLE ticker_app LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L'
+    END,
+    :'app_pw'
+)
+\gexec
 
 -- Database: ticker
 SELECT 'CREATE DATABASE ticker OWNER ticker_app'

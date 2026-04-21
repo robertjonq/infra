@@ -2,15 +2,18 @@
 --
 -- Provisions the `pmem` tenant: one role, one database, scoped grants.
 --
--- Runs as the `postgres` superuser. Safe to re-run (idempotent via
--- DO blocks that skip CREATE when the object already exists).
+-- Runs as the `postgres` superuser. Safe to re-run (idempotent — the
+-- CASE expression picks ALTER ROLE vs CREATE ROLE based on whether
+-- the role already exists; passwords are rotated on re-run).
 --
--- Password is passed in via psql -v app_pw="$PMEM_APP_PASSWORD":
+-- Password is passed in via psql's -v app_pw=... (psql client variable):
 --
---   docker compose exec -e PMEM_APP_PASSWORD=xxx postgres \
+--   docker compose exec -e PMEM_APP_PASSWORD="$PMEM_APP_PASSWORD" postgres \
 --     psql -U postgres -v app_pw="$PMEM_APP_PASSWORD" -f /provisioning/010-pmem.sql
 --
--- Or read from the infra/.env and use the wrapper script (TBD).
+-- :'app_pw' is psql-side substitution (quoted string literal). We then
+-- use format('%L', ...) server-side so special characters in the
+-- password are escaped correctly before \gexec runs the built statement.
 
 \echo 'Applying 010-pmem.sql'
 
@@ -18,22 +21,14 @@
 --   LOGIN, explicit NOSUPERUSER/NOCREATEROLE/NOCREATEDB/NOREPLICATION.
 --   Owns the pmem database and everything inside it. Cannot touch
 --   any other database on the cluster.
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pmem') THEN
-        EXECUTE format(
-            'CREATE ROLE pmem LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L',
-            current_setting('app_pw')
-        );
-    ELSE
-        -- Role exists; update password only (idempotent password rotation).
-        EXECUTE format(
-            'ALTER ROLE pmem WITH LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L',
-            current_setting('app_pw')
-        );
-    END IF;
-END
-$$;
+SELECT format(
+    CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pmem')
+         THEN 'ALTER ROLE pmem WITH LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L'
+         ELSE 'CREATE ROLE pmem LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION PASSWORD %L'
+    END,
+    :'app_pw'
+)
+\gexec
 
 -- Database: pmem
 --   Owned by pmem. Created only if absent; owner can always be fixed
