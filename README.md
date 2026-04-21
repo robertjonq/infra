@@ -1,14 +1,12 @@
 # infra
 
-Shared infrastructure for projects on this host (ubdock). Currently:
+Shared infrastructure for projects on this host (ubdock):
 
 - **Postgres 16** — multi-tenant cluster. Each project gets its own
   database + role, provisioned from SQL files in this repo.
-
-Planned:
-
 - **Nginx** — shared reverse proxy with per-tenant server blocks,
-  rate limiting, TLS termination.
+  rate limiting, TLS termination. Profile-gated (`--profile nginx`)
+  to prevent accidental conflict with other host processes on 80/443.
 - **Backup orchestration** — nightly postgres dumps + tenant filedata
   rsync to DEBEAST SMB share.
 
@@ -24,6 +22,10 @@ Planned:
 - Cluster-wide concerns: postgres version upgrades, extensions,
   backups, restores, role hygiene.
 - Password rotation playbooks.
+- The shared nginx: rate-limit zones, LAN geo allowlist, scanner
+  blocking, TLS config, and `include`-based per-tenant server blocks.
+- Let's Encrypt cert renewal plumbing (acme.sh on the host,
+  reloadcmd pointing at `infra-nginx`).
 
 **Tenants own:**
 
@@ -31,9 +33,12 @@ Planned:
 - Their connection string.
 - Their schema migrations (inside their own database only).
 - Their file-based data (volume mounts declared in their own compose).
+- Their own `server_name`, `location` routing, and proxy upstreams —
+  dropped into `nginx/conf.d/<tenant>.conf` in this repo.
 
 Tenants never have superuser access. Adding a tenant = adding a
-provisioning SQL file to this repo (via PR) and applying it.
+provisioning SQL file + an nginx conf file to this repo (via PR) and
+applying them.
 
 ## Current tenants
 
@@ -76,6 +81,13 @@ services:
     networks:
       - infra_backend
 
+  web:
+    # Container name must match what's referenced in
+    # infra/nginx/conf.d/<tenant>.conf (e.g. public-record-web).
+    container_name: public-record-web
+    networks:
+      - infra_backend
+
 networks:
   infra_backend:
     external: true
@@ -83,6 +95,84 @@ networks:
 
 The `infra_backend` network must be created by the infra compose
 first (it's declared `external: true` on the tenant side).
+
+## Nginx layout
+
+```
+nginx/
+├── nginx.conf                (http{} globals: logs, rate-limit zones, geo block, include conf.d)
+├── conf.d/
+│   └── govlens.conf          (server blocks for therecord.duckdns.org + LAN :80)
+└── snippets/
+    ├── scanners.conf         (shared scanner-blocking rules, included per server block)
+    └── proxy_headers.conf    (standard upstream proxy header set)
+```
+
+**Rate-limit zones** (defined once in `nginx.conf`, referenced from any
+tenant's server blocks):
+
+| Zone | Rate | Typical use |
+|------|------|-------------|
+| `per_ip` | 10 req/s | default `/` routes |
+| `admin`  | 2 req/s  | `/admin*` |
+| `login`  | 5 req/min | `/login` |
+
+**LAN allowlist** (`$lan` variable): 1 for `192.168.50.0/24`, 0 otherwise.
+Tenants can gate a server block with `if ($lan = 0) { return 403; }` to
+make it LAN-only.
+
+**TLS certs** are issued by acme.sh on the host (DuckDNS DNS-01
+challenge) and bind-mounted read-only from `/etc/letsencrypt`. When
+adding a new hostname, add it to acme.sh's cert config and reload
+infra-nginx.
+
+### Bring nginx up (AFTER the old pmem nginx is stopped)
+
+```bash
+docker compose --profile nginx up -d nginx
+docker compose exec nginx nginx -t          # validate config inside the running container
+docker compose exec nginx nginx -s reload   # pick up conf.d/ changes without restart
+```
+
+Host ports 80/443 can only be held by one container at a time — bring
+up infra-nginx only in the cutover window (see below).
+
+### acme.sh reloadcmd path
+
+The reloadcmd that fires after every cert renewal needs to point at
+this compose, not pmem's:
+
+```
+acme.sh --upgrade-account-key --renew -d therecord.duckdns.org \
+        --reloadcmd "docker compose -f ~/projects/infra/docker-compose.yml \
+                     --profile nginx exec -T nginx nginx -s reload"
+```
+
+(Or equivalent via `acme.sh --install-cert --reloadcmd ...`.)
+
+## Cutover from pmem's nginx to infra's
+
+Roughly 30–60 seconds of external-access downtime.
+
+1. On pmem: add `infra_backend` (external) to the `web` service's
+   networks in pmem's `docker-compose.yml`. Redeploy pmem. Confirm
+   the `public-record-web` container is now on both pmem's default
+   network AND `infra_backend`.
+2. `docker compose stop nginx` in pmem's compose — frees ports 80/443.
+3. `docker compose --profile nginx up -d nginx` in infra — infra-nginx
+   binds 80/443 and proxies to `public-record-web:5000` over
+   `infra_backend`.
+4. Hit `https://therecord.duckdns.org` from off-LAN; verify login +
+   2FA flow still works. Hit LAN IP on port 80; verify direct dashboard
+   access still works.
+5. Update acme.sh reloadcmd on ubdock (see above).
+6. When stable (7 days), remove the nginx service from pmem's compose
+   entirely.
+
+**Rollback:** stop infra-nginx (`docker compose --profile nginx stop nginx`),
+start pmem's nginx (`docker compose up -d nginx` in pmem). No config
+changes needed to roll back — both sets of configs stay on disk during
+the transition.
 
 ## Backup
 

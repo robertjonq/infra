@@ -1,16 +1,22 @@
 name: infra
 
 # Shared infrastructure for all projects on this host.
+#
 # - postgres: multi-tenant cluster. Each project gets its own DB + role.
 #   Admin (superuser) is the built-in `postgres` role; per-project roles
 #   are provisioned via postgres/provisioning/*.sql (run manually).
 #
-# Tenants attach to the `infra_backend` network from their own compose
-# files and connect via hostname `infra-postgres` on port 5432.
+# - nginx: shared reverse proxy. Gated behind the `nginx` profile so
+#   `docker compose up -d` starts postgres only. Bring nginx up with
+#   `docker compose --profile nginx up -d nginx` ONLY after the old
+#   pmem-owned nginx has been stopped — both bind ports 80/443.
 #
-# The cluster is deliberately NOT exposed on a host port. All tenant
-# access is docker-network-only. To query from the dev machine, use:
-#   docker compose exec postgres psql -U postgres
+# Tenants attach to the `infra_backend` network from their own compose
+# files and connect via hostname `infra-postgres` on port 5432, or are
+# proxied by the shared nginx via container name on the same network.
+#
+# Postgres is deliberately NOT exposed on a host port. Tenant access is
+# docker-network-only. For ops: `docker compose exec postgres psql -U postgres`.
 
 services:
   postgres:
@@ -61,6 +67,54 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+  nginx:
+    # Profile-gated: `docker compose up -d` skips this; to start:
+    #   docker compose --profile nginx up -d nginx
+    # Do NOT start while the old pmem-owned nginx is still running —
+    # both services bind host ports 80 and 443.
+    profiles: ["nginx"]
+    image: nginx:alpine
+    container_name: infra-nginx
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      # Main config — overrides the image default so we own the http{}
+      # context (log format, rate-limit zones, geo block, includes).
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Per-tenant server blocks. Add a file per tenant; nginx reload
+      # picks it up without restarting the container.
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Reusable snippets (scanner blocking, proxy header sets).
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      # Let's Encrypt certs managed by acme.sh on the host.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+    networks:
+      - infra_backend
+
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 32m
+
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "10"
 
 volumes:
   infra_postgres:

@@ -4,6 +4,9 @@
 *.sh  text eol=lf
 *.sql text eol=lf
 
+# nginx configs — parsed on Linux, CRLF can confuse some directives.
+*.conf text eol=lf
+
 # Keep config files and markdown normalised to LF too for consistency.
 *.yml  text eol=lf
 *.yaml text eol=lf
