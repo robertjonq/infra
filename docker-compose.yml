@@ -41,10 +41,15 @@ services:
       # re-runnable and auditable against the live cluster.
       - ./postgres/provisioning:/provisioning:ro
 
-    # No host port. Tenants reach this via the infra_backend network.
-    # If we ever need external psql access, add:
-    #   ports: ["5432:5432"]
-    # but prefer `docker compose exec postgres psql` instead.
+    # Expose 5432 on the LAN (192.168.50.0/24 via ubdock host). Matches
+    # the old prp_postgres posture — dev-machine psycopg2 + pgAdmin
+    # need direct TCP access. Tenant containers still prefer the
+    # internal infra_backend hostname (`infra-postgres`) over this.
+    #
+    # Not routable from the public internet — ubdock's gateway does
+    # not forward 5432. Role-based auth (scram-sha-256) still gates.
+    ports:
+      - "5432:5432"
 
     networks:
       - infra_backend
