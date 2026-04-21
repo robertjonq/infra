@@ -41,15 +41,19 @@ services:
       # re-runnable and auditable against the live cluster.
       - ./postgres/provisioning:/provisioning:ro
 
-    # Expose 5432 on the LAN (192.168.50.0/24 via ubdock host). Matches
-    # the old prp_postgres posture — dev-machine psycopg2 + pgAdmin
-    # need direct TCP access. Tenant containers still prefer the
-    # internal infra_backend hostname (`infra-postgres`) over this.
+    # Expose on host port 5433 while the OLD pmem-owned postgres
+    # container still holds 5432. After pmem DB migration retires
+    # the old cluster, change to "5432:5432" for the canonical port.
+    #
+    # Dev-machine tooling (pgAdmin, psycopg2 scripts) connects via
+    # 192.168.50.169:5433 for now. Tenant containers on infra_backend
+    # still use the internal hostname (`infra-postgres:5432`) —
+    # unchanged by host-port choice.
     #
     # Not routable from the public internet — ubdock's gateway does
-    # not forward 5432. Role-based auth (scram-sha-256) still gates.
+    # not forward 5433. scram-sha-256 auth still gates access.
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
     networks:
       - infra_backend
