@@ -87,6 +87,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # 8082: LAN-only pmem admin (moved off :80 on 2026-04-24 so :80
+      # could be handed to govlens.ie). Matches the listen directive
+      # in nginx/conf.d/govlens.conf.
+      - "8082:8082"
 
     volumes:
       # Main config — overrides the image default so we own the http{}
