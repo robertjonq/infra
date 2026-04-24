@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="GovLens">
+  <rect width="32" height="32" rx="7" fill="#ff6b3d"/>
+  <!-- magnifier handle -->
+  <line x1="21.2" y1="21.2" x2="27.5" y2="27.5" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
+  <!-- lens ring -->
+  <circle cx="14" cy="14" r="8" fill="none" stroke="#ffffff" stroke-width="2.8"/>
+  <!-- three data dots inside the lens -->
+  <circle cx="11"   cy="13"   r="1.25" fill="#ffffff"/>
+  <circle cx="14"   cy="16.5" r="1.25" fill="#ffffff"/>
+  <circle cx="17"   cy="13"   r="1.25" fill="#ffffff"/>
+</svg>

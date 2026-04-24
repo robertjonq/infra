@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>GovLens</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <style>
+        :root {
+            --bg:        #0b1020;
+            --bg-2:      #141a33;
+            --ink:       #ffffff;
+            --ink-soft:  rgba(255,255,255,.72);
+            --ink-dim:   rgba(255,255,255,.48);
+            --accent:    #ff6b3d;
+            --accent-hl: #ff8a5b;
+            --line:      rgba(255,255,255,.08);
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(1200px 600px at 80% -20%, #2b3a7a 0%, transparent 55%),
+                radial-gradient(900px 500px at -10% 110%, #1d2757 0%, transparent 60%),
+                linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+        main {
+            flex: 1;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 5rem 1.5rem 3rem;
+        }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: .6rem;
+            margin-bottom: 2.5rem;
+        }
+        .brand .mark {
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 7px;
+        }
+        .brand .word {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
+        }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            font-size: .78rem;
+            font-weight: 500;
+            letter-spacing: .02em;
+            color: var(--ink-soft);
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.14);
+            padding: .4rem .7rem;
+            border-radius: 999px;
+            margin-bottom: 1.8rem;
+        }
+        .eyebrow .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #f4b942;
+            box-shadow: 0 0 0 3px rgba(244,185,66,.22);
+        }
+        h1 {
+            font-size: clamp(2rem, 4.5vw, 3.4rem);
+            line-height: 1.08;
+            letter-spacing: -.02em;
+            font-weight: 700;
+            margin: 0 0 1.2rem;
+        }
+        h1 .hl {
+            background: linear-gradient(90deg, var(--accent-hl) 0%, #ffb38a 60%, #ffe0b8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sub {
+            font-size: 1.1rem;
+            line-height: 1.55;
+            color: var(--ink-soft);
+            margin: 0 0 2rem;
+            max-width: 38rem;
+        }
+        .contact {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            font-size: .95rem;
+            color: var(--ink);
+            text-decoration: none;
+            padding: .7rem 1rem;
+            border-radius: 8px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.14);
+            transition: background .15s, border-color .15s;
+        }
+        .contact:hover {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.28);
+        }
+        .contact .arrow { transition: transform .15s; }
+        .contact:hover .arrow { transform: translateX(2px); }
+        footer {
+            padding: 1.8rem 1.5rem 2rem;
+            font-size: .82rem;
+            color: var(--ink-dim);
+            text-align: center;
+            border-top: 1px solid var(--line);
+        }
+        footer a { color: var(--ink-soft); text-decoration: none; }
+        footer a:hover { color: var(--ink); }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="brand">
+            <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="GovLens">
+                <rect width="32" height="32" rx="7" fill="#ff6b3d"/>
+                <line x1="21.2" y1="21.2" x2="27.5" y2="27.5" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
+                <circle cx="14" cy="14" r="8" fill="none" stroke="#ffffff" stroke-width="2.8"/>
+                <circle cx="11" cy="13" r="1.25" fill="#ffffff"/>
+                <circle cx="14" cy="16.5" r="1.25" fill="#ffffff"/>
+                <circle cx="17" cy="13" r="1.25" fill="#ffffff"/>
+            </svg>
+            <span class="word">GovLens</span>
+        </div>
+
+        <span class="eyebrow"><span class="dot"></span> coming soon</span>
+
+        <h1>Council data is public.<br><span class="hl">Understanding it isn&rsquo;t.</span></h1>
+
+        <p class="sub">
+            GovLens is a civic-data portal for Irish local government &mdash;
+            meetings, committees, and councillor activity, one place,
+            cross-referenced. Going live shortly.
+        </p>
+
+        <a class="contact" href="mailto:contact@govlens.ie">
+            Get in touch <span class="arrow" aria-hidden="true">&rarr;</span>
+        </a>
+    </main>
+
+    <footer>
+        &copy; GovLens &middot; govlens.ie
+    </footer>
+</body>
+</html>
