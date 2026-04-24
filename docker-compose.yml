@@ -99,6 +99,10 @@ services:
       - ./nginx/snippets:/etc/nginx/snippets:ro
       # Let's Encrypt certs managed by acme.sh on the host.
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Stage-1 govlens.ie holding page (static, HTTP-only). Served
+      # by conf.d/govlens-public.conf until the real Flask app is
+      # ready to cut over.
+      - ./nginx/holding:/var/www/govlens-holding:ro
 
     networks:
       - infra_backend

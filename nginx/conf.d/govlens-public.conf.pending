@@ -1,20 +1,31 @@
-# govlens-public.conf — server blocks for the public marketing site.
+# govlens-public.conf — STAGE 2 REFERENCE (Flask upstream + HTTPS).
 #
-# NOT ACTIVE YET. Filename ends in .conf.pending so nginx's
-# `include conf.d/*.conf` skips it. Rename to `.conf` and reload
-# once:
-#   1. govlens.ie DNS is live and points at ubdock's public IP
-#   2. A TLS certificate has been issued for govlens.ie + www.govlens.ie
-#      via acme.sh (HTTP-01 challenge). Cert files expected at:
+# NOT ACTIVE. Filename ends in .conf.pending so nginx's
+# `include conf.d/*.conf` skips it.
+#
+# Stage 1 (currently live): static holding page served over HTTP
+# only — see the active govlens-public.conf in this directory.
+#
+# Stage 2 (this file, when we're ready to expose the real app):
+#   1. Confirm govlens.ie A records are propagated:
+#        dig +short govlens.ie
+#   2. Issue TLS cert via acme.sh HTTP-01 webroot challenge (the
+#      stage-1 conf already serves /.well-known/acme-challenge/):
+#        acme.sh --issue --webroot /var/www/acme \
+#                -d govlens.ie -d www.govlens.ie \
+#                --reloadcmd "docker kill -s HUP infra-nginx"
+#   3. Certs will land at:
 #        /etc/letsencrypt/live/govlens.ie/fullchain.pem
 #        /etc/letsencrypt/live/govlens.ie/privkey.pem
+#   4. Bring up the govlens Flask container (must be on
+#      infra_backend network, container_name govlens-web, :5000).
+#   5. Swap configs:
+#        mv govlens-public.conf        govlens-public-holding.conf.pending
+#        mv govlens-public.conf.pending govlens-public.conf
+#        docker kill -s HUP infra-nginx
+#        curl -I https://govlens.ie/   # should return 200 from govlens-web
 #
-# Deploy sequence when ready:
-#   mv govlens-public.conf.pending govlens-public.conf
-#   docker kill -s HUP infra-nginx
-#   curl -I https://govlens.ie/       # should return 200 from govlens-web
-#
-# Rollback: rename back to .pending, SIGHUP.
+# Rollback: reverse the two renames, SIGHUP.
 
 upstream govlens_public_web {
     server govlens-web:5000;
