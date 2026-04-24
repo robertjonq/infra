@@ -38,11 +38,18 @@
             margin: 0 auto;
             padding: 5rem 1.5rem 3rem;
         }
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
         .brand {
             display: inline-flex;
             align-items: center;
             gap: .6rem;
-            margin-bottom: 2.5rem;
         }
         .brand .mark {
             width: 2.2rem;
@@ -66,7 +73,7 @@
             border: 1px solid rgba(255,255,255,.14);
             padding: .4rem .7rem;
             border-radius: 999px;
-            margin-bottom: 1.8rem;
+            margin-left: auto;
         }
         .eyebrow .dot {
             width: 7px;
@@ -127,19 +134,21 @@
 </head>
 <body>
     <main>
-        <div class="brand">
-            <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="GovLens">
-                <rect width="32" height="32" rx="7" fill="#ff6b3d"/>
-                <line x1="21.2" y1="21.2" x2="27.5" y2="27.5" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
-                <circle cx="14" cy="14" r="8" fill="none" stroke="#ffffff" stroke-width="2.8"/>
-                <circle cx="11" cy="13" r="1.25" fill="#ffffff"/>
-                <circle cx="14" cy="16.5" r="1.25" fill="#ffffff"/>
-                <circle cx="17" cy="13" r="1.25" fill="#ffffff"/>
-            </svg>
-            <span class="word">GovLens</span>
-        </div>
+        <div class="top">
+            <div class="brand">
+                <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="GovLens">
+                    <rect width="32" height="32" rx="7" fill="#ff6b3d"/>
+                    <line x1="21.2" y1="21.2" x2="27.5" y2="27.5" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"/>
+                    <circle cx="14" cy="14" r="8" fill="none" stroke="#ffffff" stroke-width="2.8"/>
+                    <circle cx="11" cy="13" r="1.25" fill="#ffffff"/>
+                    <circle cx="14" cy="16.5" r="1.25" fill="#ffffff"/>
+                    <circle cx="17" cy="13" r="1.25" fill="#ffffff"/>
+                </svg>
+                <span class="word">GovLens</span>
+            </div>
 
-        <span class="eyebrow"><span class="dot"></span> coming soon</span>
+            <span class="eyebrow"><span class="dot"></span> coming soon</span>
+        </div>
 
         <h1>Council data is public.<br><span class="hl">Understanding it isn&rsquo;t.</span></h1>
 
