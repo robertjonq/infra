@@ -107,6 +107,11 @@ services:
       # by conf.d/govlens-public.conf until the real Flask app is
       # ready to cut over.
       - ./nginx/holding:/var/www/govlens-holding:ro
+      # acme.sh HTTP-01 challenge webroot — acme.sh on the host writes
+      # challenge files here, nginx serves them under
+      # /.well-known/acme-challenge/. Required before the first
+      # cert issuance; fine to leave in place once certs exist.
+      - /var/www/acme:/var/www/acme:ro
 
     networks:
       - infra_backend
